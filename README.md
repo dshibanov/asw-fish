@@ -1,3 +1,9 @@
+
+<p align="center">
+  <img src="agents.png" alt="🤖">
+</p>
+
+
 # asw – Agent Switcher 🧠
 
 ## 1. About
@@ -103,7 +109,7 @@ brew install yq        # macOS
 Clone or install directly from your repository (replace with your actual GitHub URL):
 
 ```fish
-fisher install yourusername/asw
+fisher install dshibanov/asw
 ```
 
 This will install:
