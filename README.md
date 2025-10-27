@@ -162,3 +162,43 @@ load_asw_agent
 All agent configuration and environment variables are stored and updated automatically via **universal variables** in Fish (`set -Ux`).
 
 
+## 🌟 Starship Integration
+
+You can display your current active agent directly in your shell prompt using [Starship](https://starship.rs).
+
+Add the following snippet to your `~/.config/starship.toml`:
+
+```toml
+${env_var.AGENT}\
+
+[env_var.AGENT]
+symbol = " 󱚥 "
+variable = "AGENT_MODEL"
+style = "bg:bg_yellow"
+format = "[$symbol$env_value ]($style)"
+
+
+## Integration with sllm.nvim
+
+[`sllm.nvim`](https://github.com/mozanunal/sllm.nvim) is a Neovim plugin for interacting with Large Language Models (LLMs) directly from your editor.  
+You can seamlessly integrate it with **asw** to dynamically switch your active LLM provider, model, and key.
+
+### ⚙️ Configuration
+
+Add this to your Neovim config (e.g. `~/.config/nvim/lua/plugins/sllm.lua`):
+
+```lua
+return {
+  "mozanunal/sllm.nvim",
+  config = function()
+    require("sllm").setup({
+      provider = os.getenv("AGENT_PROVIDER"),
+      model = os.getenv("AGENT_MODEL"),
+      api_key = os.getenv("AGENT_KEY"),
+      endpoint = os.getenv("AGENT_URL"),
+    })
+  end,
+}
+
+
+
