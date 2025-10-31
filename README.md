@@ -201,4 +201,182 @@ return {
 }
 
 
+## 🧩 CodeCompanion.nvim Integration
+
+[CodeCompanion.nvim](https://github.com/olimorris/codecompanion.nvim) is a Neovim plugin that connects to various AI assistants.  
+You can seamlessly use your **asw-managed agent** environment variables with CodeCompanion — no manual token editing needed.
+
+### 🔧 Setup
+
+Add this to your Neovim configuration (for example, in `init.lua` or a CodeCompanion-specific config file):
+
+```lua
+-- lazy.nvim plugin spec / codecompanion setup
+{
+  'olimorris/codecompanion.nvim',
+  dependencies = {
+    'nvim-lua/plenary.nvim',
+    'nvim-treesitter/nvim-treesitter',
+  },
+  opts = {
+    -- plugin options
+    opts = {
+      log_level = 'DEBUG',  -- keep for diagnostics
+    },
+
+    -- Make chat use openrouter by default
+    strategies = {
+      chat = {
+        adapter = "openrouter",
+      },
+    },
+
+    adapters = {
+      http = {
+        -- Create an `openrouter` adapter that extends the openai-compatible base.
+        -- Use functions so values are read from the environment at runtime.
+        openrouter = function()
+          -- `openai_compatible` or `openai` extension both work; community uses openai_compatible
+          return require("codecompanion.adapters.http").extend("openai_compatible", {
+            name = "openrouter", -- shown in UI/logs
+            env = {
+              -- env values may be strings (var names), cmd:..., or functions
+              -- using functions ensures we read the latest $AGENT_* from 'asw' at call time
+              url = function() return os.getenv("AGENT_URL") or "https://openrouter.ai/api" end,
+              api_key = function() return os.getenv("AGENT_KEY") end,
+              -- chat_url is used by some community configs (e.g. /v1/chat/completions)
+              chat_url = function() return os.getenv("OPENROUTER_CHAT_URL") or "/v1/chat/completions" end,
+            },
+
+            -- Optionally set the default model from asw (runtime function)
+            schema = {
+              model = {
+                default = (function()
+                  local m = os.getenv("AGENT_MODEL")
+                  if m == nil or m == "" then
+                    -- fallback model if AGENT_MODEL is not set
+                    return "gpt-4o"
+                  end
+                  return m
+                end)(),
+              },
+            },
+
+            -- any adapter-specific opts (proxy, streaming, etc) can go here:
+            opts = {
+              stream = true,
+            },
+          })
+        end,
+      },
+    },
+  },
+}
+```
+
+This makes CodeCompanion dynamically use whichever agent you’ve currently selected via:
+
+```bash
+asw next
+# or
+asw prev
+```
+
+No restart or manual reconfiguration is needed — CodeCompanion will automatically pick up the new environment on the next request.
+
+### 🧠 Example Usage
+
+Switch your active LLM:
+
+```bash
+asw next
+```
+
+Then in Neovim:
+
+```
+:CodeCompanionChat
+```
+
+Your chat will now use the agent defined in `~/.config/asw/config.yaml`.
+
+---
+
+### ✅ Optional: Add mini.statusline indicator
+
+<p align="center">
+  <img src="statusline.png" alt="🤖">
+</p>
+
+
+If you use a statusline (e.g. `lualine`), you can show the current active model/provider:
+
+add this to your ../nvim/lua/asw_status.lua
+
+```lua
+local M = {}
+
+function M.info()
+  local provider = os.getenv 'AGENT_PROVIDER' or '?'
+  local model = os.getenv 'AGENT_MODEL' or '?'
+  return string.format('%s · %s', provider, model)
+end
+
+return M
+```
+
+
+and this one to your lazy-plugins
+
+```lua
+return {
+  {
+    'echasnovski/mini.nvim',
+    config = function()
+      -- === Core modules ===
+      require('mini.ai').setup { n_lines = 500 }
+      require('mini.surround').setup()
+
+      -- === Statusline ===
+      local ms = require 'mini.statusline'
+
+      ms.setup {
+        use_icons = vim.g.have_nerd_font,
+        content = {
+          active = function()
+            local mode, mode_hl = ms.section_mode { trunc_width = 120 }
+            local git = ms.section_git { trunc_width = 40 }
+            local diff = ms.section_diff { trunc_width = 75 }
+            local diagnostics = ms.section_diagnostics { trunc_width = 75 }
+            local lsp = ms.section_lsp { trunc_width = 75 }
+            local filename = ms.section_filename { trunc_width = 140 }
+            local fileinfo = ms.section_fileinfo { trunc_width = 120 }
+            local location = ms.section_location { trunc_width = 75 }
+            local search = ms.section_searchcount { trunc_width = 75 }
+
+            -- Our custom symbol or info
+            local rocket = '󱚥' -- replace later with require('asw_status').info()
+
+            return ms.combine_groups {
+              { hl = mode_hl, strings = { mode } },
+              { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },
+              '%<', -- Mark truncate point
+              { hl = 'MiniStatuslineFilename', strings = { filename } },
+              { strings = { rocket } },
+              '%=', -- End left alignment (everything after this is right-aligned)
+              { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
+              { hl = mode_hl, strings = { search, location } },
+            }
+          end,
+        },
+      }
+
+      -- Optional: tweak how line/col are displayed
+      ms.section_location = function()
+        return '%2l|%2v'
+      end
+    end,
+  },
+}
+```
 
