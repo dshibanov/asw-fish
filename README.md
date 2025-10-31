@@ -176,7 +176,7 @@ symbol = " 󱚥 "
 variable = "AGENT_MODEL"
 style = "bg:bg_yellow"
 format = "[$symbol$env_value ]($style)"
-
+```
 
 ## Integration with sllm.nvim
 
@@ -199,7 +199,7 @@ return {
     })
   end,
 }
-
+```
 
 ## 🧩 CodeCompanion.nvim Integration
 
@@ -328,6 +328,7 @@ return M
 
 and this one to your lazy-plugins
 
+
 ```lua
 return {
   {
@@ -379,4 +380,6 @@ return {
   },
 }
 ```
+
+
 
